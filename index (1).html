@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Hello, World!</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+      <h1 class="title">Hello World! </h1>
+      <p id="currentTime"></p>
+      <script src="script.js"></script>
+  </body>
+</html><!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>पानी पुश गेम - नाम और इमोजी के साथ!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+            background-color: #222;
+            color: white;
+            text-align: center;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .input-group {
+            margin: 10px;
+        }
+        
+        input {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+        }
+        
+        #start-btn {
+            padding: 15px 30px;
+            font-size: 24px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        #player1-area, #player2-area {
+            position: absolute;
+            width: 100%;
+            height: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        #player1-area {
+            top: 0;
+            background-color: #3498db;
+        }
+        
+        #player2-area {
+            bottom: 0;
+            background-color: #e74c3c;
+        }
+        
+        #water {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background-color: white;
+            transition: all 0.05s;
+            z-index: 10;
+        }
+        
+        .player-name {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .player-score {
+            font-size: 30px;
+        }
+        
+        #winner-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            font-weight: bold;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 100;
+        }
+        
+        #restart-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 20px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .emoji {
+            position: absolute;
+            font-size: 30px;
+            animation: fall 3s linear forwards;
+            z-index: 50;
+        }
+        
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen">
+            <h1>पानी पुश गेम</h1>
+            <div class="input-group">
+                <input type="text" id="player1-name" placeholder="प्लेयर 1 का नाम">
+            </div>
+            <div class="input-group">
+                <input type="text" id="player2-name" placeholder="प्लेयर 2 का नाम">
+            </div>
+            <button id="start-btn">खेल शुरू करें</button>
+        </div>
+        
+        <div id="player1-area">
+            <div id="p1-name" class="player-name">प्लेयर 1</div>
+            <div id="player1-score" class="player-score">0</div>
+        </div>
+        
+        <div id="water" style="top: 50%;"></div>
+        
+        <div id="player2-area">
+            <div id="p2-name" class="player-name">प्लेयर 2</div>
+            <div id="player2-score" class="player-score">0</div>
+        </div>
+        
+        <div id="winner-message">
+            <p id="winner-text"></p>
+            <button id="restart-btn">फिर से खेलें</button>
+        </div>
+    </div>
+
+    <script>
+        // Elements
+        const player1Area = document.getElementById('player1-area');
+        const player2Area = document.getElementById('player2-area');
+        const water = document.getElementById('water');
+        const player1Score = document.getElementById('player1-score');
+        const player2Score = document.getElementById('player2-score');
+        const winnerMessage = document.getElementById('winner-message');
+        const winnerText = document.getElementById('winner-text');
+        const restartBtn = document.getElementById('restart-btn');
+        const startScreen = document.getElementById('start-screen');
+        const startBtn = document.getElementById('start-btn');
+        const p1Name = document.getElementById('p1-name');
+        const p2Name = document.getElementById('p2-name');
+        
+        // Game variables
+        let player1Taps = 0;
+        let player2Taps = 0;
+        let waterPosition = 50;
+        let gameRunning = false;
+        
+        // Emoji reactions when player loses
+        const loserEmojis = ["😭", "💥", "👟", "🍅", "😫", "🤕", "💢", "👎"];
+        
+        // Start game with player names
+        startBtn.addEventListener('click', () => {
+            const name1 = document.getElementById('player1-name').value || "प्लेयर 1";
+            const name2 = document.getElementById('player2-name').value || "प्लेयर 2";
+            
+            p1Name.textContent = name1;
+            p2Name.textContent = name2;
+            
+            startScreen.style.display = "none";
+            gameRunning = true;
+        });
+        
+        // Player 1 tap (works for both touch and mouse)
+        player1Area.addEventListener('touchstart', tapPlayer1);
+        player1Area.addEventListener('mousedown', tapPlayer1);
+        
+        // Player 2 tap (works for both touch and mouse)
+        player2Area.addEventListener('touchstart', tapPlayer2);
+        player2Area.addEventListener('mousedown', tapPlayer2);
+        
+        function tapPlayer1() {
+            if (gameRunning) {
+                player1Taps++;
+                player1Score.textContent = player1Taps;
+                waterPosition += 2; // Water moves down faster
+                updateWater();
+                checkWinner();
+            }
+        }
+        
+        function tapPlayer2() {
+            if (gameRunning) {
+                player2Taps++;
+                player2Score.textContent = player2Taps;
+                waterPosition -= 2; // Water moves up faster
+                updateWater();
+                checkWinner();
+            }
+        }
+        
+        // Update water position
+        function updateWater() {
+            if (waterPosition > 95) waterPosition = 95;
+            if (waterPosition < 5) waterPosition = 5;
+            water.style.top = `${waterPosition}%`;
+        }
+        
+        // Check winner and show emoji reactions
+        function checkWinner() {
+            if (waterPosition >= 95) {
+                endGame(p2Name.textContent + " जीता! 🎉", player1Area);
+            } else if (waterPosition <= 5) {
+                endGame(p1Name.textContent + " जीता! 🎉", player2Area);
+            }
+        }
+        
+        // End game with emoji rain
+        function endGame(message, loserArea) {
+            gameRunning = false;
+            winnerText.textContent = message;
+            winnerMessage.style.display = "block";
+            
+            // Create falling emojis over loser
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const emoji = document.createElement("div");
+                    emoji.className = "emoji";
+                    emoji.textContent = loserEmojis[Math.floor(Math.random() * loserEmojis.length)];
+                    emoji.style.left = `${Math.random() * 100}%`;
+                    emoji.style.top = "0";
+                    loserArea.appendChild(emoji);
+                    
+                    // Remove emoji after animation
+                    setTimeout(() => {
+                        emoji.remove();
+                    }, 3000);
+                }, i * 200);
+            }
+        }
+        
+        // Restart game
+        restartBtn.addEventListener('click', () => {
+            player1Taps = 0;
+            player2Taps = 0;
+            waterPosition = 50;
+            gameRunning = true;
+            player1Score.textContent = "0";
+            player2Score.textContent = "0";
+            water.style.top = "50%";
+            winnerMessage.style.display = "none";
+            startScreen.style.display = "flex";
+        });
+    </script>
+</body>
+</html>
